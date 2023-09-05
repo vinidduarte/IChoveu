@@ -1,24 +1,29 @@
-
-
+const key = import.meta.env.VITE_TOKEN;
 
 export const searchCities = async (term) => {
-  try{
-    const token = d5d8b558f2c741b8945150501230509;
-    const url = `http://api.weatherapi.com/v1/search.json?lang=pt&key=${token}&q=${term}`;
-  const response = await fetch(url);
+  const response = await fetch(`http://api.weatherapi.com/v1/search.json?lang=pt&key=${key}&q=${term}`);
   const data = await response.json();
-  const city = data.find(data => data.name.toLowerCase() === term.toLowerCase());
-  if (!city) {
-    window.alert('Nenhuma cidade encontrada');
-    return [];
+  if (!data[0]) {
+    alert('Nenhuma cidade encontrada');
   }
-    return [city];
-  } catch (error) {
-    console.error(error);
-    window.alert('Ocorreu um erro ao buscar a cidade.');
-    return [];
-}};
+  return data;
+};
 
-export const getWeatherByCity = (/* cityURL */) => {
-//   seu código aqui
+export const getWeatherByCity = async (cityURL) => {
+  const result = await fetch(`http://api.weatherapi.com/v1/current.json?key=${key}&q=${cityURL}&aqi=yes`);
+  return result.json();
+};
+
+export const getWeather7Days = async (cityURL, days) => {
+  const result = await fetch(`http://api.weatherapi.com/v1/forecast.json?lang=pt&key=${key}&q=${cityURL}&days=${days}`);
+  const data = await result.json();
+  const forecast = await data.forecast.forecastday;
+  const city7DaysTemp = forecast.map(async (day) => ({
+    date: day.date,
+    maxTemp: day.day.maxtemp_c,
+    minTemp: day.day.mintemp_c,
+    condition: day.day.condition.text,
+    icon: day.day.condition.icon,
+  }));
+  return Promise.all(city7DaysTemp);
 };

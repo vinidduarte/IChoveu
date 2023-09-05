@@ -1,4 +1,4 @@
-import { searchCities } from './weatherAPI';
+import { searchCities, getWeatherByCity, getWeather7Days } from './weatherAPI';
 
 /**
  * Cria um elemento HTML com as informações passadas
@@ -73,13 +73,28 @@ export function showForecast(forecastList) {
   forecastContainer.classList.remove('hidden');
 }
 
+/*
+  Função criada por mim. Mostra a previsão do tempo de 7 dias.
+*/
+
+const cityWeather = async (event) => {
+  const URL_CIDADE = event.target.parentNode.firstChild.innerText;
+  const DIAS = 7;
+  const data = await getWeather7Days(URL_CIDADE, DIAS);
+  showForecast(data);
+};
+
 /**
  * Recebe um objeto com as informações de uma cidade e retorna um elemento HTML
  */
 export function createCityElement(cityInfo) {
-  const { name, country, temp, condition, icon /* , url */ } = cityInfo;
+  const { name, country, temp, condition, icon, url } = cityInfo;
 
   const cityElement = createElement('li', 'city');
+
+  const cityUrl = createElement('p', 'url', url);
+  cityUrl.style.display = 'none';
+  cityElement.appendChild(cityUrl);
 
   const headingElement = createElement('div', 'city-heading');
   const nameElement = createElement('h2', 'city-name', name);
@@ -104,18 +119,33 @@ export function createCityElement(cityInfo) {
   cityElement.appendChild(headingElement);
   cityElement.appendChild(infoContainer);
 
+  const btn = createElement('button', 'btn', 'Ver previsão');
+  btn.addEventListener('click', cityWeather);
+  cityElement.appendChild(btn);
+
   return cityElement;
 }
 
 /**
  * Lida com o evento de submit do formulário de busca
  */
-export function handleSearch(event) {
+export async function handleSearch(event) {
   event.preventDefault();
   clearChildrenById('cities');
-
   const searchInput = document.getElementById('search-input');
   const searchValue = searchInput.value;
-  searchCities(searchValue);
-  // seu código aqui
+  const data = await searchCities(searchValue);
+  data.forEach(async (city) => {
+    const cityTemp = await getWeatherByCity(city.url);
+    const { name, country } = cityTemp.location;
+    const { temp_c: temp, condition: { text, icon } } = cityTemp.current;
+    const { url } = city;
+    const cityElement = createCityElement(
+      {
+        name, country, temp, icon, url, condition: text,
+      },
+    );
+    const ul = document.getElementById('cities');
+    ul.appendChild(cityElement);
+  });
 }
